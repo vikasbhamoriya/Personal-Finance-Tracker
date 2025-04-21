@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Expense Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .month-section {
+            margin-bottom: 40px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <h1 class="text-center mb-4">Expense Dashboard</h1>
+        
+        {% if no_data %}
+        <div class="no-data">
+            <h3>No Expense Data Available</h3>
+            <p>Start by adding some expenses from the main page</p>
+            <a href="/" class="btn btn-primary">Go to Expense Tracker</a>
+        </div>
+        {% else %}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Monthly Spending</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Category Breakdown (All Time)</h4>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="mt-5">Detailed Expenses</h2>
+        
+        {% for year, months in detailed_expenses.items() %}
+        <h3 class="mt-4">{{ year }}</h3>
+        
+        {% for month, categories in months.items() %}
+        <div class="month-section">
+            <h4>{{ month }} <small class="text-muted">Total: ₹{{ monthly_totals[year][month] }}</small></h4>
+            
+            <div class="row">
+                {% for category, items in categories.items() %}
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>{{ category }} <small>₹{{ category_totals[year][category] }}</small></h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group">
+                                {% for item, amount in items.items() %}
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>{{ item }}</span>
+                                    <span>₹{{ amount }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    {% if not no_data %}
+    <script>
+        // Monthly Spending Chart
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        const monthlyLabels = [];
+        const monthlyData = [];
+        
+        {% for year, months in monthly_totals.items() %}
+            {% for month, total in months.items() %}
+                monthlyLabels.push("{{ month }} {{ year }}");
+                monthlyData.push({{ total }});
+            {% endfor %}
+        {% endfor %}
+        
+        new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: monthlyLabels,
+                datasets: [{
+                    label: 'Monthly Spending (₹)',
+                    data: monthlyData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Amount (₹)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Category Breakdown Chart
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        const categoryLabels = [];
+        const categoryData = [];
+        
+        {% for category, total in overall_totals.items() %}
+            categoryLabels.push("{{ category }}");
+            categoryData.push({{ total }});
+        {% endfor %}
+        
+        new Chart(categoryCtx, {
+            type: 'pie',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    data: categoryData,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(255, 206, 86, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)',
+                        'rgba(255, 159, 64, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.label}: ₹${context.raw}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>
